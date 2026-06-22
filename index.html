@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>私の緊急カード ジェネレーター</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Google Fonts から読み込み */
+    @import url('https://fonts.googleapis.com/css2?family=Kiwi+Maru:wght@400;500&family=Noto+Sans+JP:wght@400;500;700;900&family=Noto+Serif+JP:wght@400;700&display=swap');
+
+    /* 印刷専用設定 */
+    @media print {
+      @page {
+        size: A4 portrait;
+        margin: 0; /* プリンタ側の強制余白を無効化 */
+      }
+      body {
+        background: white !important;
+        color: black !important;
+      }
+      .no-print {
+        display: none !important;
+      }
+      #print-area {
+        display: block !important;
+      }
+    }
+
+    /* 画面表示用の印刷プレビューエリア（デフォルト非表示） */
+    #print-area {
+      display: none;
+    }
+
+    /* 四角いドットの点線 */
+    .emergency-dot-line {
+      height: 3px;
+      background-image: linear-gradient(to right, #404040 50%, rgba(255,255,255,0) 0%);
+      background-position: bottom;
+      background-size: 8px 3px;
+      background-repeat: repeat-x;
+      width: 100%;
+    }
+
+    /* コンテナクエリでカード比率・サイズを維持 */
+    .card-container {
+      container-type: inline-size;
+      width: 100%;
+      aspect-ratio: 91 / 55;
+      background: #ffffff;
+      box-sizing: border-box;
+      position: relative;
+      color: #000000;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    /* カード内スケーラブルフォント */
+    .font-card-title {
+      font-size: 8.4cqw;
+      font-weight: 900;
+      letter-spacing: 0.05em;
+    }
+    .font-card-subtitle {
+      font-size: 3.5cqw;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+    }
+    .font-card-label {
+      font-size: 3.4cqw;
+      font-weight: 700;
+      line-height: 1.1;
+    }
+    .font-card-sublabel {
+      font-size: 2.1cqw;
+      font-weight: 500;
+      line-height: 1;
+      color: #1a1a1a;
+    }
+    .font-card-text {
+      font-size: 3.6cqw;
+    }
+    .font-card-parenthesis {
+      font-size: 3.8cqw;
+    }
+
+    /* スクリプトバー */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 3px;
+    }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen font-sans">
+
+  <!-- ==================== アプリ本体画面 ==================== -->
+  <div class="no-print flex flex-col min-h-screen">
+    
+    <!-- ヘッダー -->
+    <header class="bg-slate-800 border-b border-slate-700 py-4 px-6 shadow-md">
+      <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+          <div class="bg-red-600 p-2 rounded-lg text-white shadow-md">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"></path>
+            </svg>
+          </div>
+          <div>
+            <h1 class="text-xl font-black tracking-wider text-white">私の緊急カード作成ツール</h1>
+            <p class="text-xs text-slate-400">名刺サイズ (91mm × 55mm) 高精度印刷システム</p>
+          </div>
+        </div>
+        <div class="flex gap-2">
+          <button id="btn-demo" class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm font-medium rounded-lg border border-slate-600 transition-all flex items-center gap-1.5">
+            サンプルを入力
+          </button>
+          <button id="btn-clear" class="px-3 py-1.5 bg-slate-700 hover:bg-red-900/40 text-slate-300 hover:text-red-200 text-sm font-medium rounded-lg border border-slate-600 hover:border-red-800 transition-all">
+            リセット
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- メイン -->
+    <main class="flex-grow max-w-7xl w-full mx-auto p-4 lg:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      
+      <!-- 左：編集フォーム -->
+      <section class="lg:col-span-6 bg-slate-800 rounded-xl p-5 border border-slate-700 shadow-xl space-y-5">
+        <h2 class="text-lg font-bold border-b border-slate-700 pb-2 text-slate-200 flex items-center gap-2">
+          <span class="w-2.5 h-2.5 bg-blue-500 rounded-full"></span>
+          カード情報を入力
+        </h2>
+        
+        <div class="space-y-4">
+          <!-- 名前・年齢・血液型 -->
+          <div class="grid grid-cols-12 gap-3">
+            <div class="col-span-12 md:col-span-6">
+              <label class="block text-xs font-semibold text-slate-400 mb-1">名前 (Name)</label>
+              <input type="text" id="input-name" placeholder="山田 太郎" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500 transition-all">
+            </div>
+            <div class="col-span-6 md:col-span-3">
+              <label class="block text-xs font-semibold text-slate-400 mb-1">年齢 (Age)</label>
+              <input type="text" id="input-age" placeholder="35" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white text-center focus:outline-none focus:border-blue-500 transition-all">
+            </div>
+            <div class="col-span-6 md:col-span-3">
+              <label class="block text-xs font-semibold text-slate-400 mb-1">血液型 (Blood)</label>
+              <input type="text" id="input-blood" placeholder="A" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white text-center focus:outline-none focus:border-blue-500 transition-all">
+            </div>
+          </div>
+
+          <!-- 持病・アレルギー・常備薬 -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 mb-1">持病 / アレルギー疾患 / 常備薬 (Chronic condition / Allergic / Medicine)</label>
+            <textarea id="input-medical" rows="3" placeholder="・喘息（吸入器常備）&#10;・金属アレルギー" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500 transition-all text-sm"></textarea>
+          </div>
+
+          <!-- 職場住所・電話番号 -->
+          <div class="grid grid-cols-1 md:grid-cols-12 gap-3">
+            <div class="md:col-span-7">
+              <label class="block text-xs font-semibold text-slate-400 mb-1">職場住所 (Workplace Address)</label>
+              <input type="text" id="input-address" placeholder="東京都港区新橋1-2-3" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500 transition-all text-sm">
+            </div>
+            <div class="md:col-span-5">
+              <label class="block text-xs font-semibold text-slate-400 mb-1">電話番号 (Workplace Phone)</label>
+              <input type="text" id="input-phone" placeholder="03-1234-5678" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500 transition-all text-sm">
+            </div>
+          </div>
+
+          <!-- 責任者 -->
+          <div>
+            <label class="block text-xs font-semibold text-slate-400 mb-1">責任者名 (Store Manager)</label>
+            <input type="text" id="input-manager" placeholder="佐藤 一郎" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500 transition-all">
+          </div>
+        </div>
+
+        <!-- フォント・サイズ調整 -->
+        <h2 class="text-lg font-bold border-b border-slate-700 pb-2 pt-2 text-slate-200 flex items-center gap-2">
+          <span class="w-2.5 h-2.5 bg-emerald-500 rounded-full"></span>
+          デザイン・フォント調整
+        </h2>
+        <div class="space-y-3 bg-slate-900 p-4 rounded-lg border border-slate-700 text-sm">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-medium text-slate-300">フォントスタイル</span>
+            <select id="select-font" class="bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs text-white">
+              <option value="font-sans">角ゴシック体 (標準)</option>
+              <option value="font-serif">明朝体 (きれい)</option>
+              <option value="font-rounded">丸ゴシック体 (やわらかい)</option>
+            </select>
+          </div>
+
+          <div class="flex items-center justify-between">
+            <div>
+              <span class="text-xs font-medium text-slate-300 block">カード外枠線の表示</span>
+              <span class="text-[10px] text-slate-400">※名刺用紙を使う場合は「非表示」がズレが目立たず美しくなります</span>
+            </div>
+            <input type="checkbox" id="check-border" checked class="w-4 h-4 text-blue-600 rounded bg-slate-800 border-slate-700">
+          </div>
+
+          <!-- 個別文字サイズ倍率 -->
+          <div class="pt-2 border-t border-slate-800 space-y-2">
+            <span class="text-xs font-semibold text-slate-400 block">各項目の文字サイズ微調整</span>
+            
+            <div class="flex items-center gap-3">
+              <span class="text-xs text-slate-300 w-24">名前の大きさ:</span>
+              <input type="range" id="size-name" min="0.7" max="1.5" step="0.05" value="1.0" class="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer">
+              <span class="text-xs text-slate-400 w-8 text-right" id="val-name">1.0</span>
+            </div>
+            
+            <div class="flex items-center gap-3">
+              <span class="text-xs text-slate-300 w-24">持病欄の大きさ:</span>
+              <input type="range" id="size-medical" min="0.7" max="1.5" step="0.05" value="1.0" class="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer">
+              <span class="text-xs text-slate-400 w-8 text-right" id="val-medical">1.0</span>
+            </div>
+
+            <div class="flex items-center gap-3">
+              <span class="text-xs text-slate-300 w-24">住所の大きさ:</span>
+              <input type="range" id="size-address" min="0.7" max="1.5" step="0.05" value="1.0" class="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer">
+              <span class="text-xs text-slate-400 w-8 text-right" id="val-address">1.0</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 右：プレビュー＆印刷 -->
+      <section class="lg:col-span-6 space-y-6">
+        
+        <!-- プレビュー -->
+        <div class="bg-slate-800 rounded-xl p-5 border border-slate-700 shadow-xl space-y-4">
+          <h2 class="text-lg font-bold text-slate-200 flex items-center gap-2">
+            <span class="w-2.5 h-2.5 bg-amber-500 rounded-full"></span>
+            プレビュー (名刺サイズ 91mm × 55mm)
+          </h2>
+          
+          <div class="w-full bg-slate-900 p-4 rounded-lg flex justify-center items-center">
+            <div class="w-full max-w-lg shadow-2xl border border-slate-700 rounded overflow-hidden">
+              <!-- === プレビューカード === -->
+              <div id="card-preview" class="card-container font-sans text-black bg-white select-none relative p-[4%] border border-transparent">
+                
+                <div class="text-center">
+                  <div class="font-card-title leading-tight">私の緊急カード</div>
+                  <div class="font-card-subtitle leading-none mt-[0.5%]">— EMERGENCY CARD —</div>
+                </div>
+
+                <div class="flex justify-between items-end w-full mt-[3%] leading-none">
+                  <div class="flex items-end flex-grow min-w-0 pr-[2%]">
+                    <div class="flex flex-col flex-shrink-0">
+                      <span class="font-card-label">名前</span>
+                      <span class="font-card-sublabel mt-[0.5%]">name</span>
+                    </div>
+                    <div id="card-val-name" class="font-bold ml-[4%] pb-[0.3%] truncate flex-grow leading-none" style="font-size: 5.2cqw;">
+                      山田 太郎
+                    </div>
+                  </div>
+                  <div class="flex flex-col items-center flex-shrink-0 text-center px-[2%]">
+                    <span class="font-bold font-card-text">
+                      <span class="font-card-parenthesis">(</span>
+                      <span id="card-val-age" class="inline-block px-[0.5cqw]">35</span>
+                      <span class="font-card-parenthesis">)</span>
+                      <span class="font-card-label ml-[0.5cqw]">歳</span>
+                    </span>
+                    <span class="font-card-sublabel mt-[1.5%]">years old</span>
+                  </div>
+                  <div class="flex flex-col items-center flex-shrink-0 text-center pl-[2%]">
+                    <span class="font-bold font-card-text">
+                      <span class="font-card-parenthesis">(</span>
+                      <span id="card-val-blood" class="inline-block px-[0.5cqw] uppercase">A</span>
+                      <span class="font-card-parenthesis">)</span>
+                      <span class="font-card-label ml-[0.5cqw]">型</span>
+                    </span>
+                    <span class="font-card-sublabel mt-[1.5%]">blood type</span>
+                  </div>
+                </div>
+
+                <div class="emergency-dot-line mt-[1.5%] mb-[1.5%]"></div>
+
+                <div class="w-full">
+                  <div class="flex items-baseline gap-[2%]">
+                    <span class="font-card-label flex-shrink-0">持病/アレルギー疾患/常備薬</span>
+                    <span class="font-card-sublabel flex-shrink-0">chronic condition/Allergic/medicine</span>
+                  </div>
+                  <div id="card-val-medical" class="font-semibold leading-relaxed mt-[1%] w-full h-[9.5cqw] overflow-hidden whitespace-pre-wrap" style="font-size: 3.1cqw;">
+・喘息（吸入器常備）
+・金属アレルギー
+                  </div>
+                </div>
+
+                <div class="emergency-dot-line mt-[1%] mb-[1.5%]"></div>
+
+                <div class="w-full flex justify-between items-start leading-none relative">
+                  <div class="flex-grow min-w-0 pr-[2%] flex flex-col justify-between h-[10cqw]">
+                    <div class="w-full">
+                      <div class="flex items-baseline gap-[2%] mb-[0.5%]">
+                        <span class="font-card-label flex-shrink-0">職場住所</span>
+                        <span class="font-card-sublabel flex-shrink-0">Address of workplace</span>
+                      </div>
+                      <div id="card-val-address" class="font-semibold truncate w-full" style="font-size: 2.8cqw;">
+                        東京都港区新橋1-2-3
+                      </div>
+                    </div>
+                    
+                    <div class="flex items-center mt-[1%]">
+                      <svg class="flex-shrink-0 text-black fill-current mr-[1cqw]" style="width: 4cqw; height: 4cqw;" viewBox="0 0 24 24">
+                        <path d="M6.62,10.79C8.06,13.62 10.38,15.94 13.21,17.38L15.41,15.18C15.69,14.9 16.08,14.82 16.43,14.93C17.55,15.3 18.75,15.5 20,15.5A1,1 0 0,1 21,16.5V20A1,1 0 0,1 20,21A17,17 0 0,1 3,4A1,1 0 0,1 4,3H7.5A1,1 0 0,1 8.5,4C8.5,5.25 8.7,6.45 9.07,7.57C9.18,7.92 9.1,8.31 8.82,8.59L6.62,10.79Z"/>
+                      </svg>
+                      <span class="font-bold font-card-text">
+                        <span class="font-card-parenthesis">(</span>
+                        <span id="card-val-phone" class="inline-block px-[0.5cqw]">03-1234-5678</span>
+                        <span class="font-card-parenthesis">)</span>
+                      </span>
+                    </div>
+                  </div>
+
+                  <div class="flex-shrink-0 flex flex-col items-end justify-end text-right h-[10cqw]">
+                    <div id="card-val-manager" class="font-bold mb-[0.8%] tracking-wide truncate w-[25cqw]" style="font-size: 3.7cqw;">
+                      佐藤 一郎
+                    </div>
+                    <div class="font-card-label">責任者</div>
+                    <div class="font-card-sublabel mt-[0.5%]">store manager</div>
+                  </div>
+                </div>
+
+                <div class="emergency-dot-line absolute bottom-[4%] left-[4%] right-[4%]" style="width: calc(100% - 8%);"></div>
+
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 印刷設定＆物理ズレ補正機能 -->
+        <div class="bg-slate-800 rounded-xl p-5 border border-slate-700 shadow-xl space-y-4">
+          <h2 class="text-lg font-bold text-slate-200 flex items-center gap-2">
+            <span class="w-2.5 h-2.5 bg-indigo-500 rounded-full"></span>
+            高精度印刷＆ミリ位置調整
+          </h2>
+
+          <div class="space-y-4">
+            <!-- 印刷レイアウト -->
+            <div>
+              <span class="text-xs font-semibold text-slate-400 block mb-2">印刷レイアウトを選択</span>
+              <div class="grid grid-cols-2 gap-3">
+                <label class="relative flex flex-col p-3 bg-slate-900 border border-slate-700 rounded-lg cursor-pointer hover:bg-slate-850 transition-all">
+                  <input type="radio" name="print-layout" value="single" checked class="absolute top-3 right-3 text-blue-600">
+                  <span class="text-sm font-bold text-white mb-1">1枚のみ（用紙中央）</span>
+                  <span class="text-[10px] text-slate-400">用紙の中央に実寸（91x55mm）で1枚だけ出力します。テスト印刷に最適。</span>
+                </label>
+                <label class="relative flex flex-col p-3 bg-slate-900 border border-slate-700 rounded-lg cursor-pointer hover:bg-slate-850 transition-all">
+                  <input type="radio" name="print-layout" value="sheet10" class="absolute top-3 right-3 text-blue-600">
+                  <span class="text-sm font-bold text-white mb-1">A4 10面印刷</span>
+                  <span class="text-[10px] text-slate-400">エーワンなど2列×5段の名刺用紙に合わせて並べて印刷します。</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- 10面レイアウト時のマージン微調整用スライダー（業界初の超便利機能） -->
+            <div id="panel-margin-adjust" class="hidden bg-slate-900 p-4 rounded-lg border border-slate-750 space-y-3">
+              <span class="text-xs font-bold text-blue-400 block border-b border-slate-800 pb-1.5">📐 10面名刺用紙の位置ズレ微調整 (0.1mm単位)</span>
+              <p class="text-[10px] text-slate-400 leading-normal">
+                お使いの名刺台紙やプリンターの「給紙ズレ」を解決します。印刷結果が上下左右にズレた場合にのみ調整してください。
+              </p>
+              
+              <!-- 上余白調整 -->
+              <div class="space-y-1">
+                <div class="flex justify-between text-xs text-slate-300">
+                  <span>上部余白 (上からの空き):</span>
+                  <span class="font-bold text-white"><span id="val-margin-top">11.0</span>mm</span>
+                </div>
+                <input type="range" id="adjust-margin-top" min="5.0" max="20.0" step="0.1" value="11.0" class="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer">
+              </div>
+
+              <!-- 左余白調整 -->
+              <div class="space-y-1">
+                <div class="flex justify-between text-xs text-slate-300">
+                  <span>左側余白 (左からの空き):</span>
+                  <span class="font-bold text-white"><span id="val-margin-left">14.0</span>mm</span>
+                </div>
+                <input type="range" id="adjust-margin-left" min="5.0" max="25.0" step="0.1" value="14.0" class="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer">
+              </div>
+              
+              <!-- 切り取り枠線のコントロール -->
+              <div class="flex items-center justify-between pt-1 text-xs">
+                <span class="text-slate-300">切り取り補助線の表示</span>
+                <input type="checkbox" id="check-cutline" checked class="w-4 h-4 text-blue-600 rounded bg-slate-800 border-slate-700">
+              </div>
+            </div>
+
+            <!-- 印刷実行 -->
+            <button id="btn-print" class="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-lg shadow-lg hover:shadow-indigo-500/20 transition-all flex items-center justify-center gap-2">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path>
+              </svg>
+              プリンターで印刷する
+            </button>
+          </div>
+        </div>
+
+      </section>
+    </main>
+  </div>
+
+  <!-- ==================== 印刷用エリア ==================== -->
+  <div id="print-area"></div>
+
+  <script>
+    // 1. 保存用キー
+    const STORAGE_KEY = 'emergency_card_data_v2';
+
+    // デモデータ
+    const DEMO_DATA = {
+      name: '山田 太郎',
+      age: '35',
+      blood: 'A',
+      medical: '・喘息（吸入器常備）\n・金属アレルギー',
+      address: '東京都港区新橋1-2-3',
+      phone: '03-1234-5678',
+      manager: '佐藤 一郎',
+      fontStyle: 'font-sans',
+      showBorder: true,
+      sizeName: '1.0',
+      sizeMedical: '1.0',
+      sizeAddress: '1.0',
+      marginTop: '11.0',
+      marginLeft: '14.0',
+      showCutline: true
+    };
+
+    // DOM参照
+    const inputs = {
+      name: document.getElementById('input-name'),
+      age: document.getElementById('input-age'),
+      blood: document.getElementById('input-blood'),
+      medical: document.getElementById('input-medical'),
+      address: document.getElementById('input-address'),
+      phone: document.getElementById('input-phone'),
+      manager: document.getElementById('input-manager'),
+    };
+
+    const config = {
+      fontStyle: document.getElementById('select-font'),
+      showBorder: document.getElementById('check-border'),
+      sizeName: document.getElementById('size-name'),
+      sizeMedical: document.getElementById('size-medical'),
+      sizeAddress: document.getElementById('size-address'),
+      marginTop: document.getElementById('adjust-margin-top'),
+      marginLeft: document.getElementById('adjust-margin-left'),
+      showCutline: document.getElementById('check-cutline'),
+      printLayout: 'single'
+    };
+
+    const cardPreview = document.getElementById('card-preview');
+
+    // プレビュー同期更新
+    function updatePreview() {
+      const name = inputs.name.value || '　　　　　';
+      const age = inputs.age.value || '　';
+      const blood = inputs.blood.value || '　';
+      const medical = inputs.medical.value || '';
+      const address = inputs.address.value || '';
+      const phone = inputs.phone.value || '　　-　　-　　';
+      const manager = inputs.manager.value || '　　　　';
+
+      document.getElementById('card-val-name').textContent = name;
+      document.getElementById('card-val-age').textContent = age;
+      document.getElementById('card-val-blood').textContent = blood;
+      document.getElementById('card-val-medical').textContent = medical || '\n\n';
+      document.getElementById('card-val-address').textContent = address;
+      document.getElementById('card-val-phone').textContent = phone;
+      document.getElementById('card-val-manager').textContent = manager;
+
+      // フォント切り替え
+      cardPreview.className = 'card-container text-black bg-white select-none relative p-[4%] ' + config.fontStyle.value;
+      if (config.fontStyle.value === 'font-serif') {
+        cardPreview.style.fontFamily = "'Noto Serif JP', serif";
+      } else if (config.fontStyle.value === 'font-rounded') {
+        cardPreview.style.fontFamily = "'Kiwi Maru', sans-serif";
+      } else {
+        cardPreview.style.fontFamily = "'Noto Sans JP', sans-serif";
+      }
+
+      // 外枠表示
+      cardPreview.style.border = config.showBorder.checked ? '1px solid #1a1a1a' : '1px solid transparent';
+
+      // 文字倍率適用
+      document.getElementById('card-val-name').style.fontSize = `${5.2 * parseFloat(config.sizeName.value)}cqw`;
+      document.getElementById('card-val-medical').style.fontSize = `${3.1 * parseFloat(config.sizeMedical.value)}cqw`;
+      document.getElementById('card-val-address').style.fontSize = `${2.8 * parseFloat(config.sizeAddress.value)}cqw`;
+
+      // スライダー横テキスト
+      document.getElementById('val-name').textContent = config.sizeName.value;
+      document.getElementById('val-medical').textContent = config.sizeMedical.value;
+      document.getElementById('val-address').textContent = config.sizeAddress.value;
+      document.getElementById('val-margin-top').textContent = config.marginTop.value;
+      document.getElementById('val-margin-left').textContent = config.marginLeft.value;
+
+      saveData();
+    }
+
+    // データ保存
+    function saveData() {
+      const data = {
+        name: inputs.name.value,
+        age: inputs.age.value,
+        blood: inputs.blood.value,
+        medical: inputs.medical.value,
+        address: inputs.address.value,
+        phone: inputs.phone.value,
+        manager: inputs.manager.value,
+        fontStyle: config.fontStyle.value,
+        showBorder: config.showBorder.checked,
+        sizeName: config.sizeName.value,
+        sizeMedical: config.sizeMedical.value,
+        sizeAddress: config.sizeAddress.value,
+        marginTop: config.marginTop.value,
+        marginLeft: config.marginLeft.value,
+        showCutline: config.showCutline.checked
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    }
+
+    // データロード
+    function loadData() {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          setFormData(parsed);
+        } catch (e) {
+          setFormData(DEMO_DATA);
+        }
+      } else {
+        setFormData(DEMO_DATA);
+      }
+    }
+
+    function setFormData(data) {
+      inputs.name.value = data.name ?? '';
+      inputs.age.value = data.age ?? '';
+      inputs.blood.value = data.blood ?? '';
+      inputs.medical.value = data.medical ?? '';
+      inputs.address.value = data.address ?? '';
+      inputs.phone.value = data.phone ?? '';
+      inputs.manager.value = data.manager ?? '';
+
+      config.fontStyle.value = data.fontStyle ?? 'font-sans';
+      config.showBorder.checked = data.showBorder ?? true;
+      config.sizeName.value = data.sizeName ?? '1.0';
+      config.sizeMedical.value = data.sizeMedical ?? '1.0';
+      config.sizeAddress.value = data.sizeAddress ?? '1.0';
+      config.marginTop.value = data.marginTop ?? '11.0';
+      config.marginLeft.value = data.marginLeft ?? '14.0';
+      config.showCutline.checked = data.showCutline ?? true;
+
+      updatePreview();
+    }
+
+    // 監視
+    Object.values(inputs).forEach(el => el.addEventListener('input', updatePreview));
+    Object.values(config).forEach(el => {
+      if (el && typeof el === 'object' && el.addEventListener) {
+        el.addEventListener('input', updatePreview);
+      }
+    });
+
+    document.getElementById('btn-demo').addEventListener('click', () => {
+      setFormData(DEMO_DATA);
+    });
+
+    document.getElementById('btn-clear').addEventListener('click', () => {
+      setFormData({
+        name: '', age: '', blood: '', medical: '', address: '', phone: '', manager: '',
+        fontStyle: 'font-sans', showBorder: true, sizeName: '1.0', sizeMedical: '1.0', sizeAddress: '1.0',
+        marginTop: '11.0', marginLeft: '14.0', showCutline: true
+      });
+    });
+
+    // 印刷レイアウトのラジオ切り替え
+    const radios = document.querySelectorAll('input[name="print-layout"]');
+    radios.forEach(radio => {
+      radio.addEventListener('change', (e) => {
+        config.printLayout = e.target.value;
+        const adjustPanel = document.getElementById('panel-margin-adjust');
+        if (config.printLayout === 'sheet10') {
+          adjustPanel.classList.remove('hidden');
+        } else {
+          adjustPanel.classList.add('hidden');
+        }
+      });
+    });
+
+    // 印刷処理
+    document.getElementById('btn-print').addEventListener('click', () => {
+      const printArea = document.getElementById('print-area');
+      printArea.innerHTML = '';
+
+      const cardClone = cardPreview.cloneNode(true);
+      cardClone.id = '';
+
+      const styleEl = document.createElement('style');
+
+      if (config.printLayout === 'single') {
+        // 1枚のみ（用紙中央）
+        styleEl.innerHTML = `
+          .print-single-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100vw;
+            height: 100vh;
+            background: white;
+          }
+          .print-card-wrapper {
+            width: 91mm;
+            height: 55mm;
+            border: ${config.showBorder.checked ? '1px solid black' : '1px solid transparent'};
+            box-sizing: border-box;
+          }
+        `;
+        printArea.appendChild(styleEl);
+
+        const container = document.createElement('div');
+        container.className = 'print-single-container';
+        
+        const wrapper = document.createElement('div');
+        wrapper.className = 'print-card-wrapper';
+        
+        cardClone.style.width = '100%';
+        cardClone.style.height = '100%';
+        
+        wrapper.appendChild(cardClone);
+        container.appendChild(wrapper);
+        printArea.appendChild(container);
+
+      } else {
+        // A4 10面印刷 (余白をミリ秒単位で自由に動かす)
+        const topMargin = config.marginTop.value + 'mm';
+        const leftMargin = config.marginLeft.value + 'mm';
+        const borderStyle = config.showCutline.checked ? '0.5px dashed #cccccc' : '0.5px transparent';
+
+        styleEl.innerHTML = `
+          .print-10up-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 91mm);
+            grid-template-rows: repeat(5, 55mm);
+            width: 210mm;
+            height: 297mm;
+            padding-top: ${topMargin};
+            padding-left: ${leftMargin};
+            box-sizing: border-box;
+            background: white;
+            page-break-inside: avoid;
+          }
+          .print-card-cell {
+            width: 91mm;
+            height: 55mm;
+            border-right: ${borderStyle};
+            border-bottom: ${borderStyle};
+            box-sizing: border-box;
+            position: relative;
+          }
+          .print-card-cell:nth-child(-n+2) {
+            border-top: ${borderStyle};
+          }
+          .print-card-cell:nth-child(odd) {
+            border-left: ${borderStyle};
+          }
+        `;
+        printArea.appendChild(styleEl);
+
+        const grid = document.createElement('div');
+        grid.className = 'print-10up-grid';
+
+        for (let i = 0; i < 10; i++) {
+          const cell = document.createElement('div');
+          cell.className = 'print-card-cell';
+          
+          const itemClone = cardPreview.cloneNode(true);
+          itemClone.id = '';
+          itemClone.style.width = '100%';
+          itemClone.style.height = '100%';
+          
+          cell.appendChild(itemClone);
+          grid.appendChild(cell);
+        }
+        printArea.appendChild(grid);
+      }
+
+      window.print();
+    });
+
+    window.addEventListener('DOMContentLoaded', loadData);
+  </script>
+</body>
+</html>
