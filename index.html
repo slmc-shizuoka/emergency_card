@@ -3,18 +3,18 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>私の緊急カード ジェネレーター</title>
+  <title>私の緊急カード ジェネレーター (両面対応版)</title>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    /* Google Fonts から読み込み */
+    /* Google Fonts から日本語フォントを読み込み */
     @import url('https://fonts.googleapis.com/css2?family=Kiwi+Maru:wght@400;500&family=Noto+Sans+JP:wght@400;500;700;900&family=Noto+Serif+JP:wght@400;700&display=swap');
 
-    /* 印刷専用設定 */
+    /* 印刷専用スタイル */
     @media print {
       @page {
         size: A4 portrait;
-        margin: 0; /* プリンタ側の強制余白を無効化 */
+        margin: 0; /* プリンター側の余白をなくし、CSSミリ指定を絶対値にする */
       }
       body {
         background: white !important;
@@ -26,14 +26,23 @@
       #print-area {
         display: block !important;
       }
+      /* 改ページ設定 */
+      .print-page {
+        page-break-after: always;
+        break-after: page;
+      }
+      .print-page:last-child {
+        page-break-after: avoid;
+        break-after: avoid;
+      }
     }
 
-    /* 画面表示用の印刷プレビューエリア（デフォルト非表示） */
+    /* 印刷プレビューエリア（画面表示時は非表示） */
     #print-area {
       display: none;
     }
 
-    /* 四角いドットの点線 */
+    /* 画像の「四角いドット境界線」を美しく再現 */
     .emergency-dot-line {
       height: 3px;
       background-image: linear-gradient(to right, #404040 50%, rgba(255,255,255,0) 0%);
@@ -43,7 +52,7 @@
       width: 100%;
     }
 
-    /* コンテナクエリでカード比率・サイズを維持 */
+    /* コンテナクエリ：カード比率 (91:55) と文字サイズ比率を完全維持 */
     .card-container {
       container-type: inline-size;
       width: 100%;
@@ -56,24 +65,24 @@
       user-select: none;
     }
 
-    /* カード内スケーラブルフォント */
+    /* スケーラブルフォントシステム (cqw = コンテナ横幅に対する比率) */
     .font-card-title {
-      font-size: 8.4cqw;
+      font-size: 8.2cqw;
       font-weight: 900;
       letter-spacing: 0.05em;
     }
     .font-card-subtitle {
-      font-size: 3.5cqw;
+      font-size: 3.4cqw;
       font-weight: 700;
       letter-spacing: 0.05em;
     }
     .font-card-label {
-      font-size: 3.4cqw;
+      font-size: 3.2cqw;
       font-weight: 700;
       line-height: 1.1;
     }
     .font-card-sublabel {
-      font-size: 2.1cqw;
+      font-size: 2.0cqw;
       font-weight: 500;
       line-height: 1;
       color: #1a1a1a;
@@ -85,16 +94,16 @@
       font-size: 3.8cqw;
     }
 
-    /* スクリプトバー */
+    /* カスタムスクロールバー */
     ::-webkit-scrollbar {
       width: 6px;
       height: 6px;
     }
     ::-webkit-scrollbar-track {
-      background: #f1f5f9;
+      background: #1e293b;
     }
     ::-webkit-scrollbar-thumb {
-      background: #cbd5e1;
+      background: #475569;
       border-radius: 3px;
     }
   </style>
@@ -115,11 +124,11 @@
           </div>
           <div>
             <h1 class="text-xl font-black tracking-wider text-white">私の緊急カード作成ツール</h1>
-            <p class="text-xs text-slate-400">名刺サイズ (91mm × 55mm) 高精度印刷システム</p>
+            <p class="text-xs text-slate-400">プリンターの両面印刷機能で、ズレなく1発印刷対応！</p>
           </div>
         </div>
         <div class="flex gap-2">
-          <button id="btn-demo" class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm font-medium rounded-lg border border-slate-600 transition-all flex items-center gap-1.5">
+          <button id="btn-demo" class="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-200 text-sm font-medium rounded-lg border border-slate-600 transition-all">
             サンプルを入力
           </button>
           <button id="btn-clear" class="px-3 py-1.5 bg-slate-700 hover:bg-red-900/40 text-slate-300 hover:text-red-200 text-sm font-medium rounded-lg border border-slate-600 hover:border-red-800 transition-all">
@@ -132,14 +141,21 @@
     <!-- メイン -->
     <main class="flex-grow max-w-7xl w-full mx-auto p-4 lg:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
       
-      <!-- 左：編集フォーム -->
-      <section class="lg:col-span-6 bg-slate-800 rounded-xl p-5 border border-slate-700 shadow-xl space-y-5">
-        <h2 class="text-lg font-bold border-b border-slate-700 pb-2 text-slate-200 flex items-center gap-2">
-          <span class="w-2.5 h-2.5 bg-blue-500 rounded-full"></span>
-          カード情報を入力
-        </h2>
+      <!-- 左：編集フォーム（表面・裏面タブ） -->
+      <section class="lg:col-span-6 bg-slate-800 rounded-xl p-5 border border-slate-700 shadow-xl space-y-4">
         
-        <div class="space-y-4">
+        <!-- 編集面切り替えタブ -->
+        <div class="flex border-b border-slate-700">
+          <button id="tab-edit-front" class="flex-1 py-2.5 font-bold text-sm text-center border-b-2 border-blue-500 text-blue-400 transition-all outline-none">
+            👤 表面のデータを入力
+          </button>
+          <button id="tab-edit-back" class="flex-1 py-2.5 font-bold text-sm text-center border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition-all outline-none">
+            📞 裏面（緊急連絡先）を入力
+          </button>
+        </div>
+
+        <!-- 【表面フォーム】 -->
+        <div id="form-front" class="space-y-4">
           <!-- 名前・年齢・血液型 -->
           <div class="grid grid-cols-12 gap-3">
             <div class="col-span-12 md:col-span-6">
@@ -181,49 +197,118 @@
           </div>
         </div>
 
-        <!-- フォント・サイズ調整 -->
-        <h2 class="text-lg font-bold border-b border-slate-700 pb-2 pt-2 text-slate-200 flex items-center gap-2">
-          <span class="w-2.5 h-2.5 bg-emerald-500 rounded-full"></span>
-          デザイン・フォント調整
+        <!-- 【裏面フォーム】 -->
+        <div id="form-back" class="space-y-4 hidden">
+          <!-- 連絡先 1 -->
+          <div class="bg-slate-900 p-3.5 rounded-lg border border-slate-700 space-y-3">
+            <span class="text-xs font-bold text-blue-400 block flex items-center gap-1">
+              <span class="w-4 h-4 rounded-full bg-blue-500 text-white flex items-center justify-center text-[10px]">1</span>
+              緊急連絡先 ①
+            </span>
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-3">
+              <div class="md:col-span-4">
+                <label class="block text-[10px] text-slate-400 mb-0.5">名前 (name)</label>
+                <input type="text" id="input-back-name-1" placeholder="山田 花子" class="w-full bg-slate-800 border border-slate-700 rounded px-2.5 py-1 text-xs text-white focus:outline-none">
+              </div>
+              <div class="md:col-span-3">
+                <label class="block text-[10px] text-slate-400 mb-0.5">関係 (relationship)</label>
+                <input type="text" id="input-back-rel-1" placeholder="妻" class="w-full bg-slate-800 border border-slate-700 rounded px-2.5 py-1 text-xs text-white focus:outline-none">
+              </div>
+              <div class="md:col-span-5">
+                <label class="block text-[10px] text-slate-400 mb-0.5">電話番号</label>
+                <input type="text" id="input-back-phone-1" placeholder="090-1234-5678" class="w-full bg-slate-800 border border-slate-700 rounded px-2.5 py-1 text-xs text-white focus:outline-none">
+              </div>
+            </div>
+          </div>
+
+          <!-- 連絡先 2 -->
+          <div class="bg-slate-900 p-3.5 rounded-lg border border-slate-700 space-y-3">
+            <span class="text-xs font-bold text-blue-400 block flex items-center gap-1">
+              <span class="w-4 h-4 rounded-full bg-blue-500 text-white flex items-center justify-center text-[10px]">2</span>
+              緊急連絡先 ②
+            </span>
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-3">
+              <div class="md:col-span-4">
+                <label class="block text-[10px] text-slate-400 mb-0.5">名前 (name)</label>
+                <input type="text" id="input-back-name-2" placeholder="山田 茂" class="w-full bg-slate-800 border border-slate-700 rounded px-2.5 py-1 text-xs text-white focus:outline-none">
+              </div>
+              <div class="md:col-span-3">
+                <label class="block text-[10px] text-slate-400 mb-0.5">関係 (relationship)</label>
+                <input type="text" id="input-back-rel-2" placeholder="父" class="w-full bg-slate-800 border border-slate-700 rounded px-2.5 py-1 text-xs text-white focus:outline-none">
+              </div>
+              <div class="md:col-span-5">
+                <label class="block text-[10px] text-slate-400 mb-0.5">電話番号</label>
+                <input type="text" id="input-back-phone-2" placeholder="090-8765-4321" class="w-full bg-slate-800 border border-slate-700 rounded px-2.5 py-1 text-xs text-white focus:outline-none">
+              </div>
+            </div>
+          </div>
+
+          <!-- 連絡先 3 -->
+          <div class="bg-slate-900 p-3.5 rounded-lg border border-slate-700 space-y-3">
+            <span class="text-xs font-bold text-blue-400 block flex items-center gap-1">
+              <span class="w-4 h-4 rounded-full bg-blue-500 text-white flex items-center justify-center text-[10px]">3</span>
+              緊急連絡先 ③
+            </span>
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-3">
+              <div class="md:col-span-4">
+                <label class="block text-[10px] text-slate-400 mb-0.5">名前 (name)</label>
+                <input type="text" id="input-back-name-3" placeholder="東京 太郎" class="w-full bg-slate-800 border border-slate-700 rounded px-2.5 py-1 text-xs text-white focus:outline-none">
+              </div>
+              <div class="md:col-span-3">
+                <label class="block text-[10px] text-slate-400 mb-0.5">関係 (relationship)</label>
+                <input type="text" id="input-back-rel-3" placeholder="友人" class="w-full bg-slate-800 border border-slate-700 rounded px-2.5 py-1 text-xs text-white focus:outline-none">
+              </div>
+              <div class="md:col-span-5">
+                <label class="block text-[10px] text-slate-400 mb-0.5">電話番号</label>
+                <input type="text" id="input-back-phone-3" placeholder="080-1111-2222" class="w-full bg-slate-800 border border-slate-700 rounded px-2.5 py-1 text-xs text-white focus:outline-none">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- デザイン・フォント共通設定 -->
+        <h2 class="text-sm font-bold border-b border-slate-700 pb-2 pt-2 text-slate-200 flex items-center gap-2">
+          <span class="w-2 h-2 bg-emerald-500 rounded-full"></span>
+          表示スタイル・共通設定
         </h2>
         <div class="space-y-3 bg-slate-900 p-4 rounded-lg border border-slate-700 text-sm">
           <div class="flex items-center justify-between">
-            <span class="text-xs font-medium text-slate-300">フォントスタイル</span>
-            <select id="select-font" class="bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs text-white">
-              <option value="font-sans">角ゴシック体 (標準)</option>
-              <option value="font-serif">明朝体 (きれい)</option>
-              <option value="font-rounded">丸ゴシック体 (やわらかい)</option>
+            <span class="text-xs font-medium text-slate-300">全体の書体 (Font)</span>
+            <select id="select-font" class="bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs text-white outline-none">
+              <option value="font-sans">角ゴシック体 (画像準拠・標準)</option>
+              <option value="font-serif">明朝体 (フォーマル)</option>
+              <option value="font-rounded">丸ゴシック体 (やさしい)</option>
             </select>
           </div>
 
           <div class="flex items-center justify-between">
             <div>
-              <span class="text-xs font-medium text-slate-300 block">カード外枠線の表示</span>
-              <span class="text-[10px] text-slate-400">※名刺用紙を使う場合は「非表示」がズレが目立たず美しくなります</span>
+              <span class="text-xs font-medium text-slate-300 block">カード外枠線 (1px) の表示</span>
+              <span class="text-[10px] text-slate-400">※名刺台紙に刷る際は「非表示」がおすすめです</span>
             </div>
-            <input type="checkbox" id="check-border" checked class="w-4 h-4 text-blue-600 rounded bg-slate-800 border-slate-700">
+            <input type="checkbox" id="check-border" checked class="w-4 h-4 text-blue-600 rounded bg-slate-850 border-slate-700">
           </div>
 
-          <!-- 個別文字サイズ倍率 -->
+          <!-- 文字サイズ微調整スライダー -->
           <div class="pt-2 border-t border-slate-800 space-y-2">
-            <span class="text-xs font-semibold text-slate-400 block">各項目の文字サイズ微調整</span>
+            <span class="text-xs font-semibold text-slate-400 block">文字サイズ微調整（はみ出し防止用）</span>
             
             <div class="flex items-center gap-3">
-              <span class="text-xs text-slate-300 w-24">名前の大きさ:</span>
+              <span class="text-xs text-slate-300 w-24">表面・名前:</span>
               <input type="range" id="size-name" min="0.7" max="1.5" step="0.05" value="1.0" class="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer">
               <span class="text-xs text-slate-400 w-8 text-right" id="val-name">1.0</span>
             </div>
             
             <div class="flex items-center gap-3">
-              <span class="text-xs text-slate-300 w-24">持病欄の大きさ:</span>
+              <span class="text-xs text-slate-300 w-24">表面・持病欄:</span>
               <input type="range" id="size-medical" min="0.7" max="1.5" step="0.05" value="1.0" class="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer">
               <span class="text-xs text-slate-400 w-8 text-right" id="val-medical">1.0</span>
             </div>
 
             <div class="flex items-center gap-3">
-              <span class="text-xs text-slate-300 w-24">住所の大きさ:</span>
-              <input type="range" id="size-address" min="0.7" max="1.5" step="0.05" value="1.0" class="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer">
-              <span class="text-xs text-slate-400 w-8 text-right" id="val-address">1.0</span>
+              <span class="text-xs text-slate-300 w-24">裏面・氏名欄:</span>
+              <input type="range" id="size-back-name" min="0.7" max="1.5" step="0.05" value="1.0" class="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer">
+              <span class="text-xs text-slate-400 w-8 text-right" id="val-back-name">1.0</span>
             </div>
           </div>
         </div>
@@ -232,18 +317,25 @@
       <!-- 右：プレビュー＆印刷 -->
       <section class="lg:col-span-6 space-y-6">
         
-        <!-- プレビュー -->
+        <!-- プレビュー部 -->
         <div class="bg-slate-800 rounded-xl p-5 border border-slate-700 shadow-xl space-y-4">
-          <h2 class="text-lg font-bold text-slate-200 flex items-center gap-2">
-            <span class="w-2.5 h-2.5 bg-amber-500 rounded-full"></span>
-            プレビュー (名刺サイズ 91mm × 55mm)
-          </h2>
+          <div class="flex items-center justify-between border-b border-slate-700 pb-2">
+            <h2 class="text-lg font-bold text-slate-200 flex items-center gap-2">
+              <span class="w-2.5 h-2.5 bg-amber-500 rounded-full"></span>
+              名刺プレビュー
+            </h2>
+            <!-- プレビュー表示切り替えスイッチ -->
+            <div class="flex bg-slate-900 p-0.5 rounded-lg border border-slate-750 text-xs">
+              <button id="btn-show-front" class="px-3 py-1 font-bold rounded-md bg-blue-600 text-white transition-all outline-none">表面</button>
+              <button id="btn-show-back" class="px-3 py-1 font-bold rounded-md text-slate-400 hover:text-white transition-all outline-none">裏面</button>
+            </div>
+          </div>
           
           <div class="w-full bg-slate-900 p-4 rounded-lg flex justify-center items-center">
             <div class="w-full max-w-lg shadow-2xl border border-slate-700 rounded overflow-hidden">
-              <!-- === プレビューカード === -->
+              
+              <!-- ==================== 表面プレビュー ==================== -->
               <div id="card-preview" class="card-container font-sans text-black bg-white select-none relative p-[4%] border border-transparent">
-                
                 <div class="text-center">
                   <div class="font-card-title leading-tight">私の緊急カード</div>
                   <div class="font-card-subtitle leading-none mt-[0.5%]">— EMERGENCY CARD —</div>
@@ -327,76 +419,260 @@
                   </div>
                 </div>
 
+                <!-- 最下部ドット線 -->
                 <div class="emergency-dot-line absolute bottom-[4%] left-[4%] right-[4%]" style="width: calc(100% - 8%);"></div>
-
               </div>
+
+
+              <!-- ==================== 裏面プレビュー ==================== -->
+              <div id="card-preview-back" class="card-container font-sans text-black bg-white select-none relative p-[4%] border border-transparent hidden">
+                <!-- 上部タイトル -->
+                <div class="text-center leading-tight">
+                  <div class="font-bold tracking-tight" style="font-size: 4.8cqw; font-weight: 900;">私が緊急事故や体調不良時などは</div>
+                  <div class="font-bold tracking-tight" style="font-size: 4.8cqw; font-weight: 900; margin-top: 0.5%;">下記の緊急連絡先に連絡をお願いします</div>
+                  <div class="font-semibold tracking-tight text-neutral-800" style="font-size: 2.2cqw; font-family: sans-serif; margin-top: 0.8%;">In case of an emergency please contact me on the phone number below.</div>
+                </div>
+
+                <!-- 連絡先リスト -->
+                <div class="mt-[2%] space-y-[1.4cqw]">
+                  <!-- ① -->
+                  <div class="flex flex-col w-full">
+                    <div class="flex items-center leading-none">
+                      <span class="font-black mr-[1cqw] text-neutral-800" style="font-size: 4.2cqw;">①</span>
+                      <svg class="flex-shrink-0 text-black fill-current mr-[1cqw]" style="width: 3.8cqw; height: 3.8cqw;" viewBox="0 0 24 24">
+                        <path d="M6.62,10.79C8.06,13.62 10.38,15.94 13.21,17.38L15.41,15.18C15.69,14.9 16.08,14.82 16.43,14.93C17.55,15.3 18.75,15.5 20,15.5A1,1 0 0,1 21,16.5V20A1,1 0 0,1 20,21A17,17 0 0,1 3,4A1,1 0 0,1 4,3H7.5A1,1 0 0,1 8.5,4C8.5,5.25 8.7,6.45 9.07,7.57C9.18,7.92 9.1,8.31 8.82,8.59L6.62,10.79Z"/>
+                      </svg>
+                      <span class="font-bold font-card-text">
+                        <span class="font-card-parenthesis">(</span>
+                        <span id="card-val-back-phone-1" class="inline-block px-[0.5cqw]">090-1234-5678</span>
+                        <span class="font-card-parenthesis">)</span>
+                      </span>
+                    </div>
+                    <div class="flex justify-between items-end w-full mt-[0.5%] pl-[6.5cqw] leading-none">
+                      <div class="flex items-end flex-grow min-w-0 pr-[4%]">
+                        <div class="flex flex-col flex-shrink-0">
+                          <span class="font-card-label" style="font-size: 3.0cqw;">名前</span>
+                          <span class="font-card-sublabel" style="font-size: 1.8cqw; margin-top: 0.3cqw;">name</span>
+                        </div>
+                        <div id="card-val-back-name-1" class="font-bold ml-[4%] truncate flex-grow text-left" style="font-size: 3.8cqw;">山田 花子</div>
+                      </div>
+                      <div class="flex items-end flex-shrink-0">
+                        <div class="flex flex-col flex-shrink-0 text-right mr-[2cqw]">
+                          <span class="font-card-label" style="font-size: 3.0cqw;">関係</span>
+                          <span class="font-card-sublabel" style="font-size: 1.8cqw; margin-top: 0.3cqw;">relationship</span>
+                        </div>
+                        <div id="card-val-back-rel-1" class="font-bold truncate text-left w-[20cqw]" style="font-size: 3.8cqw;">妻</div>
+                      </div>
+                    </div>
+                    <div class="emergency-dot-line mt-[1.2cqw]"></div>
+                  </div>
+
+                  <!-- ② -->
+                  <div class="flex flex-col w-full">
+                    <div class="flex items-center leading-none">
+                      <span class="font-black mr-[1cqw] text-neutral-800" style="font-size: 4.2cqw;">②</span>
+                      <svg class="flex-shrink-0 text-black fill-current mr-[1cqw]" style="width: 3.8cqw; height: 3.8cqw;" viewBox="0 0 24 24">
+                        <path d="M6.62,10.79C8.06,13.62 10.38,15.94 13.21,17.38L15.41,15.18C15.69,14.9 16.08,14.82 16.43,14.93C17.55,15.3 18.75,15.5 20,15.5A1,1 0 0,1 21,16.5V20A1,1 0 0,1 20,21A17,17 0 0,1 3,4A1,1 0 0,1 4,3H7.5A1,1 0 0,1 8.5,4C8.5,5.25 8.7,6.45 9.07,7.57C9.18,7.92 9.1,8.31 8.82,8.59L6.62,10.79Z"/>
+                      </svg>
+                      <span class="font-bold font-card-text">
+                        <span class="font-card-parenthesis">(</span>
+                        <span id="card-val-back-phone-2" class="inline-block px-[0.5cqw]">090-8765-4321</span>
+                        <span class="font-card-parenthesis">)</span>
+                      </span>
+                    </div>
+                    <div class="flex justify-between items-end w-full mt-[0.5%] pl-[6.5cqw] leading-none">
+                      <div class="flex items-end flex-grow min-w-0 pr-[4%]">
+                        <div class="flex flex-col flex-shrink-0">
+                          <span class="font-card-label" style="font-size: 3.0cqw;">名前</span>
+                          <span class="font-card-sublabel" style="font-size: 1.8cqw; margin-top: 0.3cqw;">name</span>
+                        </div>
+                        <div id="card-val-back-name-2" class="font-bold ml-[4%] truncate flex-grow text-left" style="font-size: 3.8cqw;">山田 茂</div>
+                      </div>
+                      <div class="flex items-end flex-shrink-0">
+                        <div class="flex flex-col flex-shrink-0 text-right mr-[2cqw]">
+                          <span class="font-card-label" style="font-size: 3.0cqw;">関係</span>
+                          <span class="font-card-sublabel" style="font-size: 1.8cqw; margin-top: 0.3cqw;">relationship</span>
+                        </div>
+                        <div id="card-val-back-rel-2" class="font-bold truncate text-left w-[20cqw]" style="font-size: 3.8cqw;">父</div>
+                      </div>
+                    </div>
+                    <div class="emergency-dot-line mt-[1.2cqw]"></div>
+                  </div>
+
+                  <!-- ③ -->
+                  <div class="flex flex-col w-full">
+                    <div class="flex items-center leading-none">
+                      <span class="font-black mr-[1cqw] text-neutral-800" style="font-size: 4.2cqw;">③</span>
+                      <svg class="flex-shrink-0 text-black fill-current mr-[1cqw]" style="width: 3.8cqw; height: 3.8cqw;" viewBox="0 0 24 24">
+                        <path d="M6.62,10.79C8.06,13.62 10.38,15.94 13.21,17.38L15.41,15.18C15.69,14.9 16.08,14.82 16.43,14.93C17.55,15.3 18.75,15.5 20,15.5A1,1 0 0,1 21,16.5V20A1,1 0 0,1 20,21A17,17 0 0,1 3,4A1,1 0 0,1 4,3H7.5A1,1 0 0,1 8.5,4C8.5,5.25 8.7,6.45 9.07,7.57C9.18,7.92 9.1,8.31 8.82,8.59L6.62,10.79Z"/>
+                      </svg>
+                      <span class="font-bold font-card-text">
+                        <span class="font-card-parenthesis">(</span>
+                        <span id="card-val-back-phone-3" class="inline-block px-[0.5cqw]">080-1111-2222</span>
+                        <span class="font-card-parenthesis">)</span>
+                      </span>
+                    </div>
+                    <div class="flex justify-between items-end w-full mt-[0.5%] pl-[6.5cqw] leading-none">
+                      <div class="flex items-end flex-grow min-w-0 pr-[4%]">
+                        <div class="flex flex-col flex-shrink-0">
+                          <span class="font-card-label" style="font-size: 3.0cqw;">名前</span>
+                          <span class="font-card-sublabel" style="font-size: 1.8cqw; margin-top: 0.3cqw;">name</span>
+                        </div>
+                        <div id="card-val-back-name-3" class="font-bold ml-[4%] truncate flex-grow text-left" style="font-size: 3.8cqw;">東京 太郎</div>
+                      </div>
+                      <div class="flex items-end flex-shrink-0">
+                        <div class="flex flex-col flex-shrink-0 text-right mr-[2cqw]">
+                          <span class="font-card-label" style="font-size: 3.0cqw;">関係</span>
+                          <span class="font-card-sublabel" style="font-size: 1.8cqw; margin-top: 0.3cqw;">relationship</span>
+                        </div>
+                        <div id="card-val-back-rel-3" class="font-bold truncate text-left w-[20cqw]" style="font-size: 3.8cqw;">友人</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 最下部ドット線 -->
+                <div class="emergency-dot-line absolute bottom-[4%] left-[4%] right-[4%]" style="width: calc(100% - 8%);"></div>
+              </div>
+
             </div>
           </div>
         </div>
 
-        <!-- 印刷設定＆物理ズレ補正機能 -->
+        <!-- 印刷設定＆自動重ね合わせ機能 -->
         <div class="bg-slate-800 rounded-xl p-5 border border-slate-700 shadow-xl space-y-4">
           <h2 class="text-lg font-bold text-slate-200 flex items-center gap-2">
             <span class="w-2.5 h-2.5 bg-indigo-500 rounded-full"></span>
-            高精度印刷＆ミリ位置調整
+            重ね合わせ・両面印刷コントロール
           </h2>
 
           <div class="space-y-4">
-            <!-- 印刷レイアウト -->
-            <div>
-              <span class="text-xs font-semibold text-slate-400 block mb-2">印刷レイアウトを選択</span>
-              <div class="grid grid-cols-2 gap-3">
-                <label class="relative flex flex-col p-3 bg-slate-900 border border-slate-700 rounded-lg cursor-pointer hover:bg-slate-850 transition-all">
-                  <input type="radio" name="print-layout" value="single" checked class="absolute top-3 right-3 text-blue-600">
-                  <span class="text-sm font-bold text-white mb-1">1枚のみ（用紙中央）</span>
-                  <span class="text-[10px] text-slate-400">用紙の中央に実寸（91x55mm）で1枚だけ出力します。テスト印刷に最適。</span>
+            <!-- 印刷方式の選択 -->
+            <div class="bg-slate-900 p-3.5 rounded-lg border border-slate-750">
+              <span class="text-xs font-semibold text-slate-300 block mb-2">1. 印刷モードを選択</span>
+              <div class="space-y-2">
+                <!-- 両面一括印刷 (推奨) -->
+                <label class="relative flex p-3 bg-slate-850 border border-indigo-600/70 rounded-lg cursor-pointer hover:bg-slate-800 transition-all">
+                  <input type="radio" name="print-face" value="both" checked class="mt-1 mr-3 text-indigo-500 focus:ring-0">
+                  <div class="text-xs">
+                    <span class="block font-bold text-white text-sm mb-0.5">📄✨ 両面一括印刷 (推奨)</span>
+                    <span class="text-slate-400">表面と裏面を2ページ構成で一発出力。プリンターの両面印刷設定を使うと完全に重なって刷り上がります。</span>
+                  </div>
                 </label>
-                <label class="relative flex flex-col p-3 bg-slate-900 border border-slate-700 rounded-lg cursor-pointer hover:bg-slate-850 transition-all">
-                  <input type="radio" name="print-layout" value="sheet10" class="absolute top-3 right-3 text-blue-600">
-                  <span class="text-sm font-bold text-white mb-1">A4 10面印刷</span>
-                  <span class="text-[10px] text-slate-400">エーワンなど2列×5段の名刺用紙に合わせて並べて印刷します。</span>
+                <!-- 表面のみ -->
+                <label class="relative flex p-3 bg-slate-950 border border-slate-750 rounded-lg cursor-pointer hover:bg-slate-800 transition-all">
+                  <input type="radio" name="print-face" value="front" class="mt-1 mr-3 text-blue-500 focus:ring-0">
+                  <div class="text-xs">
+                    <span class="block font-bold text-slate-200">👤 表面のみ印刷</span>
+                    <span class="text-slate-400">表面だけを印刷します（または片面ずつ手動で通して刷る用）。</span>
+                  </div>
+                </label>
+                <!-- 裏面のみ -->
+                <label class="relative flex p-3 bg-slate-950 border border-slate-750 rounded-lg cursor-pointer hover:bg-slate-800 transition-all">
+                  <input type="radio" name="print-face" value="back" class="mt-1 mr-3 text-emerald-500 focus:ring-0">
+                  <div class="text-xs">
+                    <span class="block font-bold text-slate-200">📞 裏面のみ印刷</span>
+                    <span class="text-slate-400">裏面（緊急連絡先）だけを印刷します。</span>
+                  </div>
                 </label>
               </div>
             </div>
 
-            <!-- 10面レイアウト時のマージン微調整用スライダー（業界初の超便利機能） -->
-            <div id="panel-margin-adjust" class="hidden bg-slate-900 p-4 rounded-lg border border-slate-750 space-y-3">
-              <span class="text-xs font-bold text-blue-400 block border-b border-slate-800 pb-1.5">📐 10面名刺用紙の位置ズレ微調整 (0.1mm単位)</span>
+            <!-- 印刷レイアウト -->
+            <div>
+              <span class="text-xs font-semibold text-slate-400 block mb-2">2. 印刷の並びを選択</span>
+              <div class="grid grid-cols-2 gap-3">
+                <label class="relative flex flex-col p-3 bg-slate-900 border border-slate-700 rounded-lg cursor-pointer hover:bg-slate-850 transition-all">
+                  <input type="radio" name="print-layout" value="single" class="absolute top-3 right-3 text-blue-600">
+                  <span class="text-sm font-bold text-white mb-1">1枚のみ（テスト用）</span>
+                  <span class="text-[10px] text-slate-400">用紙中央に1枚だけ出力。用紙を無駄にせずズレのチェックができます。</span>
+                </label>
+                <label class="relative flex flex-col p-3 bg-slate-900 border border-slate-700 rounded-lg cursor-pointer hover:bg-slate-850 transition-all">
+                  <input type="radio" name="print-layout" value="sheet10" checked class="absolute top-3 right-3 text-blue-600">
+                  <span class="text-sm font-bold text-white mb-1">A4 10面印刷</span>
+                  <span class="text-[10px] text-slate-400">エーワンなど2列×5段の名刺用紙の寸法(上11mm・左14mm)に自動配置します。</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- 両面反転設定 -->
+            <div id="panel-flip-mode" class="bg-slate-900/60 p-3.5 rounded-lg border border-slate-750">
+              <span class="text-xs font-semibold text-slate-300 block mb-1.5">3. プリンターの両面とじ方向</span>
+              <select id="select-flip-mode" class="w-full bg-slate-800 border border-slate-700 rounded px-2.5 py-2 text-xs text-white outline-none">
+                <option value="horizontal" selected>長辺とじ / 左右開き（通常の両面印刷はこれ）</option>
+                <option value="vertical">短辺とじ / 上下開き</option>
+              </select>
+              <p class="text-[10px] text-slate-400 mt-2 leading-normal">
+                ※「長辺とじ」を選びプリンター設定で「両面印刷：長辺とじ」にすると、裏面の左右余白が数学的に反転され、表裏ピッタリと重なり合います。
+              </p>
+            </div>
+
+            <!-- 位置調整用スライダー -->
+            <div id="panel-margin-adjust" class="bg-slate-900 p-4 rounded-lg border border-slate-750 space-y-3">
+              <div class="flex justify-between items-center border-b border-slate-850 pb-1.5">
+                <span class="text-xs font-bold text-blue-400 block">📐 基準位置微調整 (0.1mm単位)</span>
+                <span class="text-[10px] px-2 py-0.5 bg-indigo-900 text-indigo-100 rounded">表面・裏面一括連動中</span>
+              </div>
               <p class="text-[10px] text-slate-400 leading-normal">
-                お使いの名刺台紙やプリンターの「給紙ズレ」を解決します。印刷結果が上下左右にズレた場合にのみ調整してください。
+                プリンターごとの「数ミリの給紙位置クセ」を修正できます。ここで表面の位置を調整すると、**裏面の位置もミラー反転して自動追従**します。
               </p>
               
               <!-- 上余白調整 -->
               <div class="space-y-1">
                 <div class="flex justify-between text-xs text-slate-300">
-                  <span>上部余白 (上からの空き):</span>
+                  <span>基準の上部余白 (上端からの空き):</span>
                   <span class="font-bold text-white"><span id="val-margin-top">11.0</span>mm</span>
                 </div>
-                <input type="range" id="adjust-margin-top" min="5.0" max="20.0" step="0.1" value="11.0" class="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer">
+                <input type="range" id="adjust-margin-top" min="5.0" max="25.0" step="0.1" value="11.0" class="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer">
               </div>
 
               <!-- 左余白調整 -->
               <div class="space-y-1">
                 <div class="flex justify-between text-xs text-slate-300">
-                  <span>左側余白 (左からの空き):</span>
+                  <span>基準の左側余白 (左端からの空き):</span>
                   <span class="font-bold text-white"><span id="val-margin-left">14.0</span>mm</span>
                 </div>
                 <input type="range" id="adjust-margin-left" min="5.0" max="25.0" step="0.1" value="14.0" class="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer">
               </div>
+
+              <!-- 追加の裏面物理補正（オプション） -->
+              <div class="pt-2 border-t border-slate-800 space-y-2">
+                <div class="flex justify-between items-center">
+                  <span class="text-[11px] font-semibold text-slate-400">プリンター独自の裏面給紙ズレ補正:</span>
+                  <button id="btn-toggle-back-offset" class="text-[10px] text-blue-400 hover:underline">高度な調整を開く</button>
+                </div>
+                <div id="panel-back-offset" class="hidden space-y-2 pt-1 bg-slate-950 p-2.5 rounded border border-slate-800">
+                  <p class="text-[9px] text-slate-500">※表裏一括印刷をした上で、裏面だけが数ミリ独立してズレる場合のみ微調整してください。</p>
+                  <div class="space-y-1">
+                    <div class="flex justify-between text-[11px] text-slate-300">
+                      <span>裏面の上下補正:</span>
+                      <span class="font-bold text-white"><span id="val-back-offset-y">0.0</span>mm</span>
+                    </div>
+                    <input type="range" id="adjust-back-offset-y" min="-5.0" max="5.0" step="0.1" value="0.0" class="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer">
+                  </div>
+                  <div class="space-y-1">
+                    <div class="flex justify-between text-[11px] text-slate-300">
+                      <span>裏面の左右補正:</span>
+                      <span class="font-bold text-white"><span id="val-back-offset-x">0.0</span>mm</span>
+                    </div>
+                    <input type="range" id="adjust-back-offset-x" min="-5.0" max="5.0" step="0.1" value="0.0" class="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer">
+                  </div>
+                </div>
+              </div>
               
               <!-- 切り取り枠線のコントロール -->
-              <div class="flex items-center justify-between pt-1 text-xs">
+              <div class="flex items-center justify-between pt-1 text-xs border-t border-slate-800">
                 <span class="text-slate-300">切り取り補助線の表示</span>
                 <input type="checkbox" id="check-cutline" checked class="w-4 h-4 text-blue-600 rounded bg-slate-800 border-slate-700">
               </div>
             </div>
 
             <!-- 印刷実行 -->
-            <button id="btn-print" class="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-lg shadow-lg hover:shadow-indigo-500/20 transition-all flex items-center justify-center gap-2">
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <button id="btn-print" class="w-full py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-lg shadow-lg hover:shadow-indigo-500/20 transition-all flex items-center justify-center gap-2 text-lg">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path>
               </svg>
-              プリンターで印刷する
+              プリンターで両面印刷を実行
             </button>
           </div>
         </div>
@@ -405,33 +681,44 @@
     </main>
   </div>
 
-  <!-- ==================== 印刷用エリア ==================== -->
+  <!-- ==================== 印刷用エリア（画面外・プリント時のみ起動） ==================== -->
   <div id="print-area"></div>
 
   <script>
-    // 1. 保存用キー
-    const STORAGE_KEY = 'emergency_card_data_v2';
+    // 保存キー
+    const STORAGE_KEY = 'emergency_card_double_sided_v5';
 
-    // デモデータ
+    // 規定値サンプル
     const DEMO_DATA = {
+      // 表面
       name: '山田 太郎',
       age: '35',
       blood: 'A',
-      medical: '・喘息（吸入器常備）\n・金属アレルギー',
-      address: '東京都港区新橋1-2-3',
+      medical: '・喘息（吸入器常備）\n・金属アレルギー\n・ロキソニン服用中',
+      address: '東京都港区新橋1-2-3 ○○ビル',
       phone: '03-1234-5678',
       manager: '佐藤 一郎',
+      // 裏面
+      backName1: '山田 花子', backRel1: '妻', backPhone1: '090-1234-5678',
+      backName2: '山田 茂', backRel2: '父', backPhone2: '090-8765-4321',
+      backName3: '東京 太郎', backRel3: '友人', backPhone3: '080-1111-2222',
+      // 設定
       fontStyle: 'font-sans',
       showBorder: true,
       sizeName: '1.0',
       sizeMedical: '1.0',
-      sizeAddress: '1.0',
+      sizeBackName: '1.0',
+      // 印刷レイアウト設定
       marginTop: '11.0',
       marginLeft: '14.0',
-      showCutline: true
+      backOffsetY: '0.0',
+      backOffsetX: '0.0',
+      showCutline: true,
+      flipMode: 'horizontal',
+      printFace: 'both' // デフォルト一括
     };
 
-    // DOM参照
+    // DOMへの接続
     const inputs = {
       name: document.getElementById('input-name'),
       age: document.getElementById('input-age'),
@@ -440,6 +727,16 @@
       address: document.getElementById('input-address'),
       phone: document.getElementById('input-phone'),
       manager: document.getElementById('input-manager'),
+      // 裏面
+      backName1: document.getElementById('input-back-name-1'),
+      backRel1: document.getElementById('input-back-rel-1'),
+      backPhone1: document.getElementById('input-back-phone-1'),
+      backName2: document.getElementById('input-back-name-2'),
+      backRel2: document.getElementById('input-back-rel-2'),
+      backPhone2: document.getElementById('input-back-phone-2'),
+      backName3: document.getElementById('input-back-name-3'),
+      backRel3: document.getElementById('input-back-rel-3'),
+      backPhone3: document.getElementById('input-back-phone-3'),
     };
 
     const config = {
@@ -447,17 +744,77 @@
       showBorder: document.getElementById('check-border'),
       sizeName: document.getElementById('size-name'),
       sizeMedical: document.getElementById('size-medical'),
-      sizeAddress: document.getElementById('size-address'),
+      sizeBackName: document.getElementById('size-back-name'),
       marginTop: document.getElementById('adjust-margin-top'),
       marginLeft: document.getElementById('adjust-margin-left'),
+      backOffsetY: document.getElementById('adjust-back-offset-y'),
+      backOffsetX: document.getElementById('adjust-back-offset-x'),
       showCutline: document.getElementById('check-cutline'),
-      printLayout: 'single'
+      flipMode: document.getElementById('select-flip-mode'),
+      printLayout: 'sheet10', // 'single' | 'sheet10' (デフォルト10面)
+      printFace: 'both' // 'both' | 'front' | 'back'
     };
 
     const cardPreview = document.getElementById('card-preview');
+    const cardPreviewBack = document.getElementById('card-preview-back');
 
-    // プレビュー同期更新
+    // ----------------------------------------------------
+    // UI処理: タブ切り替え
+    // ----------------------------------------------------
+    const tabEditFront = document.getElementById('tab-edit-front');
+    const tabEditBack = document.getElementById('tab-edit-back');
+    const formFront = document.getElementById('form-front');
+    const formBack = document.getElementById('form-back');
+
+    tabEditFront.addEventListener('click', () => {
+      tabEditFront.className = 'flex-1 py-2.5 font-bold text-sm text-center border-b-2 border-blue-500 text-blue-400 outline-none';
+      tabEditBack.className = 'flex-1 py-2.5 font-bold text-sm text-center border-b-2 border-transparent text-slate-400 hover:text-slate-200 outline-none';
+      formFront.classList.remove('hidden');
+      formBack.classList.add('hidden');
+      switchToPreview('front');
+    });
+
+    tabEditBack.addEventListener('click', () => {
+      tabEditBack.className = 'flex-1 py-2.5 font-bold text-sm text-center border-b-2 border-blue-500 text-blue-400 outline-none';
+      tabEditFront.className = 'flex-1 py-2.5 font-bold text-sm text-center border-b-2 border-transparent text-slate-400 hover:text-slate-200 outline-none';
+      formBack.classList.remove('hidden');
+      formFront.classList.add('hidden');
+      switchToPreview('back');
+    });
+
+    const btnShowFront = document.getElementById('btn-show-front');
+    const btnShowBack = document.getElementById('btn-show-back');
+
+    function switchToPreview(face) {
+      if (face === 'front') {
+        btnShowFront.className = 'px-3 py-1 font-bold rounded-md bg-blue-600 text-white outline-none';
+        btnShowBack.className = 'px-3 py-1 font-bold rounded-md text-slate-400 hover:text-white outline-none';
+        cardPreview.classList.remove('hidden');
+        cardPreviewBack.classList.add('hidden');
+      } else {
+        btnShowBack.className = 'px-3 py-1 font-bold rounded-md bg-blue-600 text-white outline-none';
+        btnShowFront.className = 'px-3 py-1 font-bold rounded-md text-slate-400 hover:text-white outline-none';
+        cardPreviewBack.classList.remove('hidden');
+        cardPreview.classList.add('hidden');
+      }
+    }
+
+    btnShowFront.addEventListener('click', () => switchToPreview('front'));
+    btnShowBack.addEventListener('click', () => switchToPreview('back'));
+
+    // 高度な微調整の開閉
+    const btnToggleBackOffset = document.getElementById('btn-toggle-back-offset');
+    const panelBackOffset = document.getElementById('panel-back-offset');
+    btnToggleBackOffset.addEventListener('click', () => {
+      panelBackOffset.classList.toggle('hidden');
+      btnToggleBackOffset.textContent = panelBackOffset.classList.contains('hidden') ? '高度な調整を開く' : '高度な調整を閉じる';
+    });
+
+    // ----------------------------------------------------
+    // 同期＆プレビューの描画アップデート
+    // ----------------------------------------------------
     function updatePreview() {
+      // 表面値
       const name = inputs.name.value || '　　　　　';
       const age = inputs.age.value || '　';
       const blood = inputs.blood.value || '　';
@@ -474,37 +831,62 @@
       document.getElementById('card-val-phone').textContent = phone;
       document.getElementById('card-val-manager').textContent = manager;
 
-      // フォント切り替え
-      cardPreview.className = 'card-container text-black bg-white select-none relative p-[4%] ' + config.fontStyle.value;
-      if (config.fontStyle.value === 'font-serif') {
-        cardPreview.style.fontFamily = "'Noto Serif JP', serif";
-      } else if (config.fontStyle.value === 'font-rounded') {
-        cardPreview.style.fontFamily = "'Kiwi Maru', sans-serif";
-      } else {
-        cardPreview.style.fontFamily = "'Noto Sans JP', sans-serif";
-      }
+      // 裏面値
+      document.getElementById('card-val-back-name-1').textContent = inputs.backName1.value || '　　　　';
+      document.getElementById('card-val-back-rel-1').textContent = inputs.backRel1.value || '　';
+      document.getElementById('card-val-back-phone-1').textContent = inputs.backPhone1.value || '　　-　　-　　';
 
-      // 外枠表示
-      cardPreview.style.border = config.showBorder.checked ? '1px solid #1a1a1a' : '1px solid transparent';
+      document.getElementById('card-val-back-name-2').textContent = inputs.backName2.value || '　　　　';
+      document.getElementById('card-val-back-rel-2').textContent = inputs.backRel2.value || '　';
+      document.getElementById('card-val-back-phone-2').textContent = inputs.backPhone2.value || '　　-　　-　　';
 
-      // 文字倍率適用
+      document.getElementById('card-val-back-name-3').textContent = inputs.backName3.value || '　　　　';
+      document.getElementById('card-val-back-rel-3').textContent = inputs.backRel3.value || '　';
+      document.getElementById('card-val-back-phone-3').textContent = inputs.backPhone3.value || '　　-　　-　　';
+
+      // 書体の設定
+      const activeFont = config.fontStyle.value;
+      [cardPreview, cardPreviewBack].forEach(preview => {
+        preview.className = 'card-container text-black bg-white select-none relative p-[4%] ' + activeFont;
+        if (activeFont === 'font-serif') {
+          preview.style.fontFamily = "'Noto Serif JP', serif";
+        } else if (activeFont === 'font-rounded') {
+          preview.style.fontFamily = "'Kiwi Maru', sans-serif";
+        } else {
+          preview.style.fontFamily = "'Noto Sans JP', sans-serif";
+        }
+        // 外枠
+        preview.style.border = config.showBorder.checked ? '1px solid #1a1a1a' : '1px solid transparent';
+      });
+
+      // スケーラーの適用（表面）
       document.getElementById('card-val-name').style.fontSize = `${5.2 * parseFloat(config.sizeName.value)}cqw`;
       document.getElementById('card-val-medical').style.fontSize = `${3.1 * parseFloat(config.sizeMedical.value)}cqw`;
-      document.getElementById('card-val-address').style.fontSize = `${2.8 * parseFloat(config.sizeAddress.value)}cqw`;
+      
+      // スケーラーの適用（裏面）
+      const backNameScale = `${3.8 * parseFloat(config.sizeBackName.value)}cqw`;
+      document.getElementById('card-val-back-name-1').style.fontSize = backNameScale;
+      document.getElementById('card-val-back-name-2').style.fontSize = backNameScale;
+      document.getElementById('card-val-back-name-3').style.fontSize = backNameScale;
 
-      // スライダー横テキスト
+      // ラベル更新
       document.getElementById('val-name').textContent = config.sizeName.value;
       document.getElementById('val-medical').textContent = config.sizeMedical.value;
-      document.getElementById('val-address').textContent = config.sizeAddress.value;
+      document.getElementById('val-back-name').textContent = config.sizeBackName.value;
       document.getElementById('val-margin-top').textContent = config.marginTop.value;
       document.getElementById('val-margin-left').textContent = config.marginLeft.value;
+      document.getElementById('val-back-offset-y').textContent = config.backOffsetY.value;
+      document.getElementById('val-back-offset-x').textContent = config.backOffsetX.value;
 
       saveData();
     }
 
-    // データ保存
+    // ----------------------------------------------------
+    // データ永続化 (保存・読み込み)
+    // ----------------------------------------------------
     function saveData() {
-      const data = {
+      const payload = {
+        // 表面
         name: inputs.name.value,
         age: inputs.age.value,
         blood: inputs.blood.value,
@@ -512,19 +894,34 @@
         address: inputs.address.value,
         phone: inputs.phone.value,
         manager: inputs.manager.value,
+        // 裏面
+        backName1: inputs.backName1.value,
+        backRel1: inputs.backRel1.value,
+        backPhone1: inputs.backPhone1.value,
+        backName2: inputs.backName2.value,
+        backRel2: inputs.backRel2.value,
+        backPhone2: inputs.backPhone2.value,
+        backName3: inputs.backName3.value,
+        backRel3: inputs.backRel3.value,
+        backPhone3: inputs.backPhone3.value,
+        // 設定
         fontStyle: config.fontStyle.value,
         showBorder: config.showBorder.checked,
         sizeName: config.sizeName.value,
         sizeMedical: config.sizeMedical.value,
-        sizeAddress: config.sizeAddress.value,
+        sizeBackName: config.sizeBackName.value,
+        showCutline: config.showCutline.checked,
+        flipMode: config.flipMode.value,
+        // マージン
         marginTop: config.marginTop.value,
         marginLeft: config.marginLeft.value,
-        showCutline: config.showCutline.checked
+        backOffsetY: config.backOffsetY.value,
+        backOffsetX: config.backOffsetX.value,
+        printFace: config.printFace
       };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
     }
 
-    // データロード
     function loadData() {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
@@ -548,19 +945,41 @@
       inputs.phone.value = data.phone ?? '';
       inputs.manager.value = data.manager ?? '';
 
+      inputs.backName1.value = data.backName1 ?? '';
+      inputs.backRel1.value = data.backRel1 ?? '';
+      inputs.backPhone1.value = data.backPhone1 ?? '';
+      inputs.backName2.value = data.backName2 ?? '';
+      inputs.backRel2.value = data.backRel2 ?? '';
+      inputs.backPhone2.value = data.backPhone2 ?? '';
+      inputs.backName3.value = data.backName3 ?? '';
+      inputs.backRel3.value = data.backRel3 ?? '';
+      inputs.backPhone3.value = data.backPhone3 ?? '';
+
       config.fontStyle.value = data.fontStyle ?? 'font-sans';
       config.showBorder.checked = data.showBorder ?? true;
       config.sizeName.value = data.sizeName ?? '1.0';
       config.sizeMedical.value = data.sizeMedical ?? '1.0';
-      config.sizeAddress.value = data.sizeAddress ?? '1.0';
+      config.sizeBackName.value = data.sizeBackName ?? '1.0';
+      config.showCutline.checked = data.showCutline ?? true;
+      config.flipMode.value = data.flipMode ?? 'horizontal';
+      
       config.marginTop.value = data.marginTop ?? '11.0';
       config.marginLeft.value = data.marginLeft ?? '14.0';
-      config.showCutline.checked = data.showCutline ?? true;
+      config.backOffsetY.value = data.backOffsetY ?? '0.0';
+      config.backOffsetX.value = data.backOffsetX ?? '0.0';
+
+      // 印刷モードの同期
+      const printFaceValue = data.printFace ?? 'both';
+      const radio = document.querySelector(`input[name="print-face"][value="${printFaceValue}"]`);
+      if (radio) radio.checked = true;
+      config.printFace = printFaceValue;
 
       updatePreview();
     }
 
-    // 監視
+    // ----------------------------------------------------
+    // イベントリスナー
+    // ----------------------------------------------------
     Object.values(inputs).forEach(el => el.addEventListener('input', updatePreview));
     Object.values(config).forEach(el => {
       if (el && typeof el === 'object' && el.addEventListener) {
@@ -569,128 +988,228 @@
     });
 
     document.getElementById('btn-demo').addEventListener('click', () => {
-      setFormData(DEMO_DATA);
+      if (confirm('入力欄の内容を、実機デモ用のサンプルに上書きしてよろしいですか？')) {
+        setFormData(DEMO_DATA);
+      }
     });
 
     document.getElementById('btn-clear').addEventListener('click', () => {
-      setFormData({
-        name: '', age: '', blood: '', medical: '', address: '', phone: '', manager: '',
-        fontStyle: 'font-sans', showBorder: true, sizeName: '1.0', sizeMedical: '1.0', sizeAddress: '1.0',
-        marginTop: '11.0', marginLeft: '14.0', showCutline: true
-      });
+      if (confirm('すべて白紙にリセットしてよろしいですか？')) {
+        setFormData({
+          name: '', age: '', blood: '', medical: '', address: '', phone: '', manager: '',
+          backName1: '', backRel1: '', backPhone1: '',
+          backName2: '', backRel2: '', backPhone2: '',
+          backName3: '', backRel3: '', backPhone3: '',
+          fontStyle: 'font-sans', showBorder: true, sizeName: '1.0', sizeMedical: '1.0', sizeBackName: '1.0',
+          marginTop: '11.0', marginLeft: '14.0', backOffsetY: '0.0', backOffsetX: '0.0',
+          showCutline: true, flipMode: 'horizontal', printFace: 'both'
+        });
+      }
     });
 
-    // 印刷レイアウトのラジオ切り替え
+    // 印刷レイアウト（ラジオ）切り替え
     const radios = document.querySelectorAll('input[name="print-layout"]');
     radios.forEach(radio => {
       radio.addEventListener('change', (e) => {
         config.printLayout = e.target.value;
         const adjustPanel = document.getElementById('panel-margin-adjust');
+        const flipModePanel = document.getElementById('panel-flip-mode');
         if (config.printLayout === 'sheet10') {
           adjustPanel.classList.remove('hidden');
+          flipModePanel.classList.remove('hidden');
         } else {
           adjustPanel.classList.add('hidden');
+          flipModePanel.classList.add('hidden');
         }
       });
     });
 
-    // 印刷処理
-    document.getElementById('btn-print').addEventListener('click', () => {
-      const printArea = document.getElementById('print-area');
-      printArea.innerHTML = '';
+    // 印刷方式（ラジオ）切り替え
+    const printFaceRadios = document.querySelectorAll('input[name="print-face"]');
+    printFaceRadios.forEach(radio => {
+      radio.addEventListener('change', (e) => {
+        config.printFace = e.target.value;
+        updatePreview();
+      });
+    });
 
-      const cardClone = cardPreview.cloneNode(true);
-      cardClone.id = '';
-
-      const styleEl = document.createElement('style');
-
-      if (config.printLayout === 'single') {
-        // 1枚のみ（用紙中央）
-        styleEl.innerHTML = `
-          .print-single-container {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            width: 100vw;
-            height: 100vh;
-            background: white;
-          }
-          .print-card-wrapper {
-            width: 91mm;
-            height: 55mm;
-            border: ${config.showBorder.checked ? '1px solid black' : '1px solid transparent'};
-            box-sizing: border-box;
-          }
-        `;
-        printArea.appendChild(styleEl);
-
-        const container = document.createElement('div');
-        container.className = 'print-single-container';
+    // ----------------------------------------------------
+    // 【コアロジック】印刷用HTML＆CSSの生成処理
+    // ----------------------------------------------------
+    
+    // 特定のカード（表面 or 裏面）を10面グリッドにして返す関数
+    function create10upPageHtml(cardNode, sideLabel, isBackMirror) {
+      const pageDiv = document.createElement('div');
+      pageDiv.className = 'print-page';
+      
+      const grid = document.createElement('div');
+      grid.className = `print-10up-grid-${sideLabel}`;
+      
+      for (let i = 0; i < 10; i++) {
+        const cell = document.createElement('div');
+        cell.className = `print-card-cell-${sideLabel}`;
         
-        const wrapper = document.createElement('div');
-        wrapper.className = 'print-card-wrapper';
-        
+        const cardClone = cardNode.cloneNode(true);
+        cardClone.id = '';
+        cardClone.classList.remove('hidden');
         cardClone.style.width = '100%';
         cardClone.style.height = '100%';
         
-        wrapper.appendChild(cardClone);
-        container.appendChild(wrapper);
-        printArea.appendChild(container);
+        cell.appendChild(cardClone);
+        grid.appendChild(cell);
+      }
+      
+      pageDiv.appendChild(grid);
+      return pageDiv;
+    }
 
+    // 単一印刷（中央1枚）を生成して返す関数
+    function createSinglePageHtml(cardNode) {
+      const pageDiv = document.createElement('div');
+      pageDiv.className = 'print-page';
+
+      const container = document.createElement('div');
+      container.className = 'print-single-container';
+      
+      const wrapper = document.createElement('div');
+      wrapper.className = 'print-card-wrapper';
+      
+      const cardClone = cardNode.cloneNode(true);
+      cardClone.id = '';
+      cardClone.classList.remove('hidden');
+      cardClone.style.width = '100%';
+      cardClone.style.height = '100%';
+      
+      wrapper.appendChild(cardClone);
+      container.appendChild(wrapper);
+      pageDiv.appendChild(container);
+      return pageDiv;
+    }
+
+    // 印刷ボタンのトリガー
+    document.getElementById('btn-print').addEventListener('click', () => {
+      const printArea = document.getElementById('print-area');
+      printArea.innerHTML = ''; // クリア
+
+      const styleEl = document.createElement('style');
+      
+      // ユーザー設定のミリ値を取得
+      const marginFTop = parseFloat(config.marginTop.value);   // 表面基準上余白
+      const marginFLeft = parseFloat(config.marginLeft.value); // 表面基準左余白
+      
+      const offsetBackY = parseFloat(config.backOffsetY.value); // 裏面上下補正
+      const offsetBackX = parseFloat(config.backOffsetX.value); // 裏面左右補正
+
+      const flipMode = config.flipMode.value; // 'horizontal' or 'vertical'
+      const showBorder = config.showBorder.checked;
+      const borderStyle = config.showCutline.checked ? '0.5px dashed #cccccc' : '0.5px transparent';
+
+      // ----------------------------------------------------
+      // 【数学的反転計算アルゴリズム】
+      // ----------------------------------------------------
+      let marginBTop = marginFTop;
+      let marginBLeft = marginFLeft;
+
+      if (flipMode === 'horizontal') {
+        // 長辺とじ（左右開き）の場合：
+        // 裏面の左余白は A4幅（210mm）- 名刺2枚（182mm）- 表面左余白。
+        marginBLeft = (210 - 182 - marginFLeft) + offsetBackX;
+        marginBTop = marginFTop + offsetBackY;
       } else {
-        // A4 10面印刷 (余白をミリ秒単位で自由に動かす)
-        const topMargin = config.marginTop.value + 'mm';
-        const leftMargin = config.marginLeft.value + 'mm';
-        const borderStyle = config.showCutline.checked ? '0.5px dashed #cccccc' : '0.5px transparent';
-
-        styleEl.innerHTML = `
-          .print-10up-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 91mm);
-            grid-template-rows: repeat(5, 55mm);
-            width: 210mm;
-            height: 297mm;
-            padding-top: ${topMargin};
-            padding-left: ${leftMargin};
-            box-sizing: border-box;
-            background: white;
-            page-break-inside: avoid;
-          }
-          .print-card-cell {
-            width: 91mm;
-            height: 55mm;
-            border-right: ${borderStyle};
-            border-bottom: ${borderStyle};
-            box-sizing: border-box;
-            position: relative;
-          }
-          .print-card-cell:nth-child(-n+2) {
-            border-top: ${borderStyle};
-          }
-          .print-card-cell:nth-child(odd) {
-            border-left: ${borderStyle};
-          }
-        `;
-        printArea.appendChild(styleEl);
-
-        const grid = document.createElement('div');
-        grid.className = 'print-10up-grid';
-
-        for (let i = 0; i < 10; i++) {
-          const cell = document.createElement('div');
-          cell.className = 'print-card-cell';
-          
-          const itemClone = cardPreview.cloneNode(true);
-          itemClone.id = '';
-          itemClone.style.width = '100%';
-          itemClone.style.height = '100%';
-          
-          cell.appendChild(itemClone);
-          grid.appendChild(cell);
-        }
-        printArea.appendChild(grid);
+        // 短辺とじ（上下開き）の場合：
+        // 裏面の上余白は A4高（297mm）- 名刺5枚（275mm）- 表面上余白。
+        marginBLeft = marginFLeft + offsetBackX;
+        marginBTop = (297 - 275 - marginFTop) + offsetBackY;
       }
 
+      // 印刷用CSS定義
+      let printStyles = `
+        /* 1枚のみ印刷用 CSS */
+        .print-single-container {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          width: 100vw;
+          height: 100vh;
+          background: white;
+        }
+        .print-card-wrapper {
+          width: 91mm;
+          height: 55mm;
+          border: ${showBorder ? '1px solid black' : '1px solid transparent'};
+          box-sizing: border-box;
+        }
+
+        /* 表面 10面グリッドCSS */
+        .print-10up-grid-front {
+          display: grid;
+          grid-template-columns: repeat(2, 91mm);
+          grid-template-rows: repeat(5, 55mm);
+          width: 210mm;
+          height: 297mm;
+          padding-top: ${marginFTop}mm;
+          padding-left: ${marginFLeft}mm;
+          box-sizing: border-box;
+          background: white;
+        }
+        .print-card-cell-front {
+          width: 91mm;
+          height: 55mm;
+          border-right: ${borderStyle};
+          border-bottom: ${borderStyle};
+          box-sizing: border-box;
+          position: relative;
+        }
+        .print-card-cell-front:nth-child(-n+2) { border-top: ${borderStyle}; }
+        .print-card-cell-front:nth-child(odd) { border-left: ${borderStyle}; }
+
+        /* 裏面 10面グリッドCSS（反転余白が自動適用されます） */
+        .print-10up-grid-back {
+          display: grid;
+          grid-template-columns: repeat(2, 91mm);
+          grid-template-rows: repeat(5, 55mm);
+          width: 210mm;
+          height: 297mm;
+          padding-top: ${marginBTop}mm;
+          padding-left: ${marginBLeft}mm;
+          box-sizing: border-box;
+          background: white;
+        }
+        .print-card-cell-back {
+          width: 91mm;
+          height: 55mm;
+          border-right: ${borderStyle};
+          border-bottom: ${borderStyle};
+          box-sizing: border-box;
+          position: relative;
+        }
+        .print-card-cell-back:nth-child(-n+2) { border-top: ${borderStyle}; }
+        .print-card-cell-back:nth-child(odd) { border-left: ${borderStyle}; }
+      `;
+
+      styleEl.innerHTML = printStyles;
+      printArea.appendChild(styleEl);
+
+      // 印刷コンテンツの生成
+      if (config.printLayout === 'single') {
+        // --- 1枚のみ印刷モード ---
+        if (config.printFace === 'both' || config.printFace === 'front') {
+          printArea.appendChild(createSinglePageHtml(cardPreview));
+        }
+        if (config.printFace === 'both' || config.printFace === 'back') {
+          printArea.appendChild(createSinglePageHtml(cardPreviewBack));
+        }
+      } else {
+        // --- A4 10面印刷モード ---
+        if (config.printFace === 'both' || config.printFace === 'front') {
+          printArea.appendChild(create10upPageHtml(cardPreview, 'front', false));
+        }
+        if (config.printFace === 'both' || config.printFace === 'back') {
+          printArea.appendChild(create10upPageHtml(cardPreviewBack, 'back', true));
+        }
+      }
+
+      // プリンター印刷ダイアログの起動
       window.print();
     });
 
